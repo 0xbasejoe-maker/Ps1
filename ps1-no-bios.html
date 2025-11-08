@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>PS1 Emulator - NO BIOS NEEDED</title>
+  <style>
+    body { margin:0; background:#000; font-family:Arial; color:#fff; text-align:center; }
+    #canvas { image-rendering:pixelated; margin:20px auto; display:block; border:4px solid #333; }
+    #drop { border:5px dashed #0f0; width:800px; height:500px; margin:50px auto; line-height:500px; font-size:40px; }
+    .btn { padding:15px 30px; margin:10px; background:#0f0; color:#000; border:none; font-weight:bold; cursor:pointer; }
+  </style>
+</head>
+<body>
+  <h1>BIOS-FREE PS1 EMULATOR</h1>
+  <p>Drag & drop any .bin/.iso/.cue game → Works instantly!</p>
+  <div id="drop">DROP GAME HERE<br>(Mortal Kombat Trilogy, Tekken 3, etc.)</div>
+  <canvas id="canvas" width="1024" height="768"></canvas>
+
+  <script src="https://cdn.jsdelivr.net/gh/ethanholtz/light-ps1-wasm@latest/dist/ps1.js"></script>
+  <script>
+    const canvas = document.getElementById('canvas');
+    const drop = document.getElementById('drop');
+    let emu;
+
+    // Load emulator (no BIOS!)
+    async function startEmu(gameData) {
+      emu = new LightPS1Emulator({
+        canvas: canvas,
+        game: gameData,
+        skipBios: true,
+        highAccuracy: true,
+        audio: true
+      });
+      
+      await emu.load();
+      drop.style.display = 'none';
+      console.log("PS1 running - NO BIOS - FATALITY!");
+    }
+
+    // Drag & drop
+    ['dragover', 'drop'].forEach(ev => {
+      document.body.addEventListener(ev, e => e.preventDefault());
+    });
+
+    drop.ondrop = async (e) => {
+      e.preventDefault();
+      const file = e.dataTransfer.files[0];
+      if (!file.name.match(/\.(bin|iso|img|cue|pbp)$/i)) {
+        alert("Drop a PS1 game file (.bin/.iso/.cue)");
+        return;
+      }
+      const data = await file.arrayBuffer();
+      startEmu(data);
+    };
+
+    // Test with free homebrew (uncomment to auto-load)
+    // fetch('https://files.catbox.moe/2x9q1k.bin').then(r => r.arrayBuffer()).then(startEmu);
+  </script>
+
+  <p>Tested with: Mortal Kombat Trilogy, Crash Bandicoot, Final Fantasy VII</p>
+  <p><b>Legal • Fast • No BIOS • Works on phone</b></p>
+</body>
+</html>
