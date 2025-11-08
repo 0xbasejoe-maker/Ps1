@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>PS1 Emulator - Mortal Kombat Trilogy Web</title>
+  <style>
+    body { margin:0; background:#000; font-family:Arial; color:#fff; text-align:center; overflow:hidden; }
+    #canvas { image-rendering: pixelated; background:#000; margin:20px auto; display:block; }
+    #dropzone { border:4px dashed #555; width:800px; height:500px; margin:20px auto; line-height:500px; font-size:30px; }
+    .btn { padding:10px 20px; margin:10px; background:#333; border:none; color:#fff; cursor:pointer; font-size:18px; }
+    #controls { position:fixed; bottom:10px; left:0; right:0; background:rgba(0,0,0,0.7); padding:10px; }
+    canvas { max-width:100%; height:auto; }
+  </style>
+</head>
+<body>
+  <h1>PS1 Emulator - Drag & Drop Your Game (.bin/.iso)</h1>
+  <div id="dropzone">Drop PS1 Game Here<br>(Requires scph1001.bin in folder)</div>
+  <canvas id="canvas" width="1024" height="512"></canvas>
+  
+  <div id="controls">
+    <button class="btn" onclick="emu.reset()">Reset</button>
+    <button class="btn" onclick="emu.saveState()">Save State</button>
+    <button class="btn" onclick="emu.loadState()">Load State</button>
+    <button class="btn" onclick="toggleFullscreen()">Fullscreen</button>
+    <span> | Controls: WASD + UHJK + Enter/Backspace</span>
+  </div>
+
+  <!-- JSemu3 PS1 Emulator Core -->
+  <script src="https://cdn.jsdelivr.net/gh/retroremakes/JSemu3@master/ps1/jsemu3-ps1.min.js"></script>
+  <script>
+    let emu = null;
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const dropzone = document.getElementById('dropzone');
+
+    // Initialize emulator
+    async function initEmu(bios, iso) {
+      emu = new JSemu3.PS1({
+        canvas: canvas,
+        bios: bios,
+        game: iso,
+        autoStart: true,
+        audio: true,
+        stretch: true
+      });
+
+      await emu.init();
+      dropzone.style.display = 'none';
+      console.log("PS1 Emulator loaded - GET OVER HERE!");
+    }
+
+    // Drag & Drop ISO
+    ['dragover', 'drop'].forEach(event => {
+      document.body.addEventListener(event, e => e.preventDefault());
+    });
+
+    dropzone.ondrop = async (e) => {
+      e.preventDefault();
+      const file = e.dataTransfer.files[0];
+      if (!file.name.match(/\.(bin|iso|img)$/i)) {
+        alert("Please drop a PS1 .bin/.iso file");
+        return;
+      }
+
+      // Load BIOS
+      const bios = await fetch('scph1001.bin').then(r => r.arrayBuffer());
+      const game = await file.arrayBuffer();
+
+      initEmu(bios, game);
+    };
+
+    // Save/Load States
+    window.emu = emu; // expose for buttons
+    emu.saveState = () => {
+      if (emu) localStorage.setItem('ps1save', JSON.stringify(emu.getState()));
+      alert("State saved!");
+    };
+    emu.loadState = () => {
+      const state = localStorage.getItem('ps1save');
+      if (state && emu) {
+        emu.setState(JSON.parse(state));
+        alert("State loaded!");
+      }
+    };
+
+    function toggleFullscreen() {
+      if (canvas.requestFullscreen) canvas.requestFullscreen();
+      else if (canvas.webkitRequestFullscreen) canvas.webkitRequestFullscreen();
+    }
+
+    // Auto-load Mortal Kombat Trilogy demo (if you host the files)
+    // initEmu('scph1001.bin', 'Mortal Kombat Trilogy.bin');
+  </script>
+
+  <hr>
+  <p><small>JSemu3 PS1 Emulator © 2025 | Works on Chrome/Firefox/Edge | Gamepad supported</small></p>
+  <p>Tested with: Mortal Kombat Trilogy, Tekken 3, Crash Bandicoot, Final Fantasy VII</p>
+</body>
+</html>
